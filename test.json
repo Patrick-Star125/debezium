@@ -1,0 +1,170 @@
+//1.9 ta
+
+{
+	"name": "ta-con",
+	"config": {
+	  "connector.class": "io.debezium.connector.oracle.OracleConnector",
+	  "tasks.max": "1",
+	  "database.hostname": "192.168.1.115",
+	  "database.port": "1525",
+	  "database.user": "c##dbzuser",
+	  "database.password": "dbz",
+	  "database.dbname": "ORCLCDB",
+	  "database.pdb.name": "ORCLPDB1",
+	  "database.server.name": "server1",
+	  "table.include.list": "C##DBZUSER.TA",
+	  "database.history.kafka.bootstrap.servers": "kafka:9092",
+	  "log.mining.sleep.time.max.ms": "300",
+	  "log.mining.sleep.time.default.ms": "0",
+	  "log.mining.sleep.time.increment.ms": "0",
+	  "database.history.kafka.topic": "schema-changes"
+	}
+}
+
+//2.2 ta
+
+{
+	"name": "ta-con",
+	"config": {
+	  "connector.class": "io.debezium.connector.oracle.OracleConnector",
+	  "tasks.max": "1",
+	  "database.hostname": "192.168.1.115",
+	  "database.port": "1525",
+	  "database.user": "c##dbzuser",
+	  "database.password": "dbz",
+	  "database.dbname": "ORCLCDB",
+	  "database.pdb.name": "ORCLPDB1",
+	  "topic.prefix": "server1",
+	  "table.include.list": "C##DBZUSER.TA",
+	  "log.mining.sleep.time.max.ms": "300",
+	  "log.mining.sleep.time.default.ms": "100",
+	  "log.mining.sleep.time.increment.ms": "20",
+	  "schema.history.internal.kafka.bootstrap.servers" : "kafka:9092",
+	  "schema.history.internal.kafka.topic": "schema-changes"
+	}
+}
+
+//1.9 tb
+{
+	"name": "tb-con",
+	"config": {
+	  "connector.class": "io.debezium.connector.oracle.OracleConnector",
+	  "tasks.max": "1",
+	  "database.hostname": "192.168.1.115",
+	  "database.port": "1525",
+	  "database.user": "c##dbzuser",
+	  "database.password": "dbz",
+	  "database.dbname": "ORCLCDB",
+	  "database.pdb.name": "ORCLPDB1",
+	  "database.server.name": "server1",
+	  "table.include.list": "C##DBZUSER.TB",
+	  "log.mining.sleep.time.max.ms": "300",
+	  "log.mining.sleep.time.default.ms": "100",
+	  "log.mining.sleep.time.increment.ms": "20",
+	  "database.history.kafka.bootstrap.servers" : "kafka:9092",
+	  "database.history.kafka.topic": "schema-changes",
+	  "key.converter": "io.confluent.connect.avro.AvroConverter",
+	  "value.converter": "io.confluent.connect.avro.AvroConverter",
+	  "key.converter.schema.registry.url": "http://schema-registry:8081",
+	  "value.converter.schema.registry.url": "http://schema-registry:8081"
+	}
+}
+
+//2.2 tb
+
+{
+	"name": "tb-con",
+	"config": {
+	  "connector.class": "io.debezium.connector.oracle.OracleConnector",
+	  "tasks.max": "1",
+	  "database.hostname": "192.168.1.115",
+	  "database.port": "1525",
+	  "database.user": "c##dbzuser",
+	  "database.password": "dbz",
+	  "database.dbname": "ORCLCDB",
+	  "database.pdb.name": "ORCLPDB1",
+	  "topic.prefix": "server1",
+	  "table.include.list": "C##DBZUSER.TB",
+	  "log.mining.sleep.time.max.ms": "300",
+	  "log.mining.sleep.time.default.ms": "100",
+	  "log.mining.sleep.time.increment.ms": "20",
+	  "schema.history.internal.kafka.bootstrap.servers" : "kafka:9092",
+	  "schema.history.internal.kafka.topic": "schema-changes",
+	  "field.name.adjustment.mode": "avro",
+	  "key.converter": "io.confluent.connect.avro.AvroConverter",
+	  "value.converter": "io.confluent.connect.avro.AvroConverter",
+	  "key.converter.schema.registry.url": "http://schema-registry:8081",
+	  "value.converter.schema.registry.url": "http://schema-registry:8081"
+	}
+}
+
+
+//sink
+
+{
+	"name": "ta-sink",
+	"config": {
+			"connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
+			"tasks.max": "1",
+			"topics": "server1.C__DBZUSER.TA",
+			"dialect.name": "PostgreSqlDatabaseDialect",
+			"table.name.format": "public.ta",
+			"connection.url": "jdbc:postgresql://192.168.1.20:5432/postgres?user=postgres&password=postgres",
+			"transforms": "unwrap",
+			"transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+			"transforms.unwrap.drop.tombstones": "false",
+			"delete.enabled": "true",
+			"insert.mode": "upsert",
+			"pk.mode": "record_key",
+			"pk.fieleds": "ID",
+			"auto.create": "true"
+	}
+}
+
+<id>development</id>
+<activation>
+	<jdk>17</jdk>
+	<activeByDefault>true</activeByDefault>
+</activation>
+<properties>
+	<maven.compiler.source>17</maven.compiler.source>
+	<maven.compiler.target>17</maven.compiler.target>
+	<maven.compiler.compilerVersion>17</maven.compiler.compilerVersion>
+</properties>
+</profile>
+
+
+{
+	"name": "tb-con",
+	"config": {
+	  "connector.class": "io.debezium.connector.oracle.OracleConnector",
+	  "tasks.max": "1",
+	  "database.hostname": "192.168.1.115",
+	  "database.port": "1525",
+	  "database.user": "c##dbzuser",
+	  "database.password": "dbz",
+	  "database.dbname": "ORCLCDB",
+	  "database.pdb.name": "ORCLPDB1",
+	  "topic.prefix": "tb",
+	  "table.include.list": "C##DBZUSER.TB",
+	  "schema.history.internal.kafka.bootstrap.servers" : "kafka:9092",
+	  "schema.history.internal.kafka.topic": "schema-changes"
+	}
+}
+
+{
+	"name": "ta-con",
+	"connector": {
+		"state": "RUNNING",
+		"worker_id": "172.19.0.7:8083"
+	},
+	"tasks": [
+		{
+			"id": 0,
+			"state": "FAILED",
+			"worker_id": "172.19.0.7:8083",
+			"trace": "java.lang.Error: Unresolved compilation problems: \n\tThe type io.debezium.ddl.parser.mysql.generated.MySqlParser$RenameTableClauseContext cannot be resolved. It is indirectly referenced from required type io.debezium.antlr.AntlrDdlParser\n\tThe import io.debezium.ddl.parser.oracle.generated cannot be resolved\n\tThe import io.debezium.ddl.parser.oracle.generated cannot be resolved\n\tThe type OracleDdlParser must implement the inherited abstract method AntlrDdlParser<PlSqlLexer,PlSqlParser>.parseTree(PlSqlParser)\n\tPlSqlLexer cannot be resolved to a type\n\tPlSqlParser cannot be resolved to a type\n\tPlSqlParser cannot be resolved to a type\n\tPlSqlLexer cannot be resolved to a type\n\tPlSqlLexer cannot be resolved to a type\n\tPlSqlParser cannot be resolved to a type\n\tPlSqlParser cannot be resolved to a type\n\tPlSqlParser cannot be resolved to a type\n\tThe method asList(T...) in the type Arrays is not applicable for the arguments (DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry, DataTypeResolver.DataTypeEntry)\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\tPlSqlParser cannot be resolved to a variable\n\n\tat io.debezium.connector.oracle.antlr.OracleDdlParser.<init>(OracleDdlParser.java:1)\n\tat io.debezium.connector.oracle.OracleDatabaseSchema.<init>(OracleDatabaseSchema.java:70)\n\tat io.debezium.connector.oracle.OracleConnectorTask.start(OracleConnectorTask.java:75)\n\tat io.debezium.connector.common.BaseSourceTask.startIfNeededAndPossible(BaseSourceTask.java:310)\n\tat io.debezium.connector.common.BaseSourceTask.poll(BaseSourceTask.java:179)\n\tat org.apache.kafka.connect.runtime.AbstractWorkerSourceTask.poll(AbstractWorkerSourceTask.java:457)\n\tat org.apache.kafka.connect.runtime.AbstractWorkerSourceTask.execute(AbstractWorkerSourceTask.java:351)\n\tat org.apache.kafka.connect.runtime.WorkerTask.doRun(WorkerTask.java:202)\n\tat org.apache.kafka.connect.runtime.WorkerTask.run(WorkerTask.java:257)\n\tat org.apache.kafka.connect.runtime.AbstractWorkerSourceTask.run(AbstractWorkerSourceTask.java:75)\n\tat org.apache.kafka.connect.runtime.isolation.Plugins.lambda$withClassLoader$1(Plugins.java:177)\n\tat java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)\n\tat java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)\n\tat java.base/java.lang.Thread.run(Thread.java:829)\n"
+		}
+	],
+	"type": "source"
+}

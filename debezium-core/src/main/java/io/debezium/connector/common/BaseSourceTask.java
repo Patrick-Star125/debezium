@@ -8,7 +8,9 @@ package io.debezium.connector.common;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -21,6 +23,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.errors.RetriableException;
@@ -101,6 +109,8 @@ public abstract class BaseSourceTask<P extends Partition, O extends OffsetContex
     private final ServiceLoader<SignalChannelReader> availableSignalChannels = ServiceLoader.load(SignalChannelReader.class);
 
     private final List<NotificationChannel> notificationChannels;
+
+    private List<Object[]> storedTime = new ArrayList<>();
 
     protected BaseSourceTask() {
         // Use exponential delay to log the progress frequently at first, but the quickly tapering off to once an hour...
@@ -187,6 +197,36 @@ public abstract class BaseSourceTask<P extends Partition, O extends OffsetContex
         }
     }
 
+    private void uploadTime(){
+        String jdbcUrl = "jdbc:oracle:thin:@//192.168.1.115:1525/ORCLPDB1";
+        String username = "c##dbzuser";
+        String password = "dbz";
+        Connection c = null;
+        try {
+            c = DriverManager.getConnection(jdbcUrl, username, password);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        PreparedStatement preparedStatement = null;
+        String sql = "insert into C##DBZUSER.ta_topic (topic_time, topic_num) values (?,?)";
+        try {
+            c.setAutoCommit(false);
+            preparedStatement = c.prepareStatement(sql);
+            for (Object[] row : storedTime) {
+                preparedStatement.setTimestamp(1, (Timestamp) row[0]);
+                preparedStatement.setInt(2, (Integer) row[1]);
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+            c.commit();
+            c.close();
+            LOGGER.info("上传topic时间戳成功");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        storedTime.clear();
+    }
+
     protected void logStatistics(final List<SourceRecord> records) {
         if (records == null || !LOGGER.isInfoEnabled()) {
             return;
@@ -195,12 +235,22 @@ public abstract class BaseSourceTask<P extends Partition, O extends OffsetContex
 
         if (batchSize > 0) {
             // We want to log the number of records per topic...
-            if (LOGGER.isDebugEnabled()) {
-                final Map<String, Integer> topicCounts = new LinkedHashMap<>();
-                records.forEach(r -> topicCounts.merge(r.topic(), 1, Integer::sum));
-                for (Map.Entry<String, Integer> topicCount : topicCounts.entrySet()) {
-                    LOGGER.debug("Sending {} records to topic {}", topicCount.getValue(), topicCount.getKey());
+            // if (LOGGER.isDebugEnabled()) {
+                // final Map<String, Integer> topicCounts = new LinkedHashMap<>();
+                // records.forEach(r -> topicCounts.merge(r.topic(), 1, Integer::sum));
+                // for (Map.Entry<String, Integer> topicCount : topicCounts.entrySet()) {
+                //     LOGGER.debug("Sending {} records to topic {}", topicCount.getValue(), topicCount.getKey());
+                // }
+            // }
+            final Map<String, Integer> topicCounts = new LinkedHashMap<>();
+            records.forEach(r -> topicCounts.merge(r.topic(), 1, Integer::sum));
+            for (Map.Entry<String, Integer> topicCount : topicCounts.entrySet()) {
+                LOGGER.info("Sending {} records to topic {}", topicCount.getValue(), topicCount.getKey());
+                if (topicCount.getKey().startsWith("server2")) {
+                    uploadTime();
                 }
+                Timestamp timestampNow = new Timestamp(System.currentTimeMillis());
+                storedTime.add(new Object[]{timestampNow, topicCount.getValue()});
             }
 
             SourceRecord lastRecord = records.get(batchSize - 1);

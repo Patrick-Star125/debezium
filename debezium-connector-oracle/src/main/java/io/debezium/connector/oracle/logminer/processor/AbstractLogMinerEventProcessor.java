@@ -5,14 +5,19 @@
  */
 package io.debezium.connector.oracle.logminer.processor;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -81,6 +86,7 @@ public abstract class AbstractLogMinerEventProcessor<T extends AbstractTransacti
     protected final Counters counters;
     protected final String sqlQuery;
 
+    private List<Object[]> storedTime = new ArrayList<>();
     private Scn currentOffsetScn = Scn.NULL;
     private Map<Integer, Scn> currentOffsetCommitScns = new HashMap<>();
     private Instant lastProcessedScnChangeTime = null;
@@ -193,7 +199,7 @@ public abstract class AbstractLogMinerEventProcessor<T extends AbstractTransacti
         counters.reset();
 
         try (PreparedStatement statement = createQueryStatement()) {
-            LOGGER.debug("Fetching results for SCN [{}, {}]", startScn, endScn);
+            LOGGER.info("Fetching results for SCN [{}, {}]", startScn, endScn);
             statement.setFetchSize(getConfig().getQueryFetchSize());
             statement.setFetchDirection(ResultSet.FETCH_FORWARD);
             statement.setString(1, startScn.toString());
@@ -216,6 +222,13 @@ public abstract class AbstractLogMinerEventProcessor<T extends AbstractTransacti
                     if (offsetContext.getCommitScn() != null) {
                         currentOffsetCommitScns = offsetContext.getCommitScn().getCommitScnForAllRedoThreads();
                     }
+                }
+
+                int op_sum = counters.insertCount;
+                if (op_sum > 0) {
+                    Timestamp timestampNow = new Timestamp(System.currentTimeMillis());
+                    storedTime.add(new Object[]{timestampNow, op_sum});
+                    LOGGER.info("insert {} rows, timestamp {}", op_sum, timestampNow);
                 }
 
                 LOGGER.debug("{}.", counters);
@@ -278,6 +291,36 @@ public abstract class AbstractLogMinerEventProcessor<T extends AbstractTransacti
         }
     }
 
+    private void uploadTime(){
+        String jdbcUrl = "jdbc:oracle:thin:@//192.168.1.115:1525/ORCLPDB1";
+        String username = "c##dbzuser";
+        String password = "dbz";
+        Connection c = null;
+        try {
+            c = DriverManager.getConnection(jdbcUrl, username, password);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        PreparedStatement preparedStatement = null;
+        String sql = "insert into C##DBZUSER.ta_log (log_time, log_num) values (?,?)";
+        try {
+            c.setAutoCommit(false);
+            preparedStatement = c.prepareStatement(sql);
+            for (Object[] row : storedTime) {
+                preparedStatement.setTimestamp(1, (Timestamp) row[0]);
+                preparedStatement.setInt(2, (Integer) row[1]);
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+            c.commit();
+            c.close();
+            LOGGER.info("upload logminer time stampe successfully!");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        storedTime.clear();
+    }
+
     /**
      * Processes a single LogMinerEventRow.
      *
@@ -314,6 +357,16 @@ public abstract class AbstractLogMinerEventProcessor<T extends AbstractTransacti
                 return;
             }
         }
+
+        // String tableName = "" + row.getTableId();
+        // // String tableName = row.getTableId().toString();
+        // if (tableName.length() != 4) {
+        //     LOGGER.info("talbe {} has changed", tableName);
+        // }
+        // if (tableName.length() != 4 && tableName.length() != 22 ) {
+        //     uploadTime();
+        // }
+        // LOGGER.debug(" ------------ table '{}' filter already ------------", row.getTableId());
 
         switch (row.getEventType()) {
             case MISSING_SCN:
