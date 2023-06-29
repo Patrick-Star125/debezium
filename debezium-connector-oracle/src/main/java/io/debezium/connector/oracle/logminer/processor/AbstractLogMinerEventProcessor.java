@@ -307,6 +307,8 @@ public abstract class AbstractLogMinerEventProcessor<T extends AbstractTransacti
             c.setAutoCommit(false);
             preparedStatement = c.prepareStatement(sql);
             for (Object[] row : storedTime) {
+                // System.out.println(" ------------ time " + row[0] + "num" + row[1] + " ------------");
+                // LOGGER.info(" ------------ time {} num {} ------------", row[0], row[1]);
                 preparedStatement.setTimestamp(1, (Timestamp) row[0]);
                 preparedStatement.setInt(2, (Integer) row[1]);
                 preparedStatement.addBatch();
@@ -364,6 +366,8 @@ public abstract class AbstractLogMinerEventProcessor<T extends AbstractTransacti
         //     LOGGER.info("talbe {} has changed", tableName);
         // }
         if (tableName.length() != 4 && tableName.length() != 22 ) {
+            // LOGGER.info(" ------------ table '{}' has been detected ------------", tableName);
+            // System.out.println(" ------------ table " + tableName + " has been detected ------------");
             uploadTime();
         }
         LOGGER.debug(" ------------ table '{}' filter already ------------", row.getTableId());
