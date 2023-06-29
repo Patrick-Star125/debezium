@@ -358,15 +358,15 @@ public abstract class AbstractLogMinerEventProcessor<T extends AbstractTransacti
             }
         }
 
-        // String tableName = "" + row.getTableId();
+        String tableName = "" + row.getTableId();
         // // String tableName = row.getTableId().toString();
         // if (tableName.length() != 4) {
         //     LOGGER.info("talbe {} has changed", tableName);
         // }
-        // if (tableName.length() != 4 && tableName.length() != 22 ) {
-        //     uploadTime();
-        // }
-        // LOGGER.debug(" ------------ table '{}' filter already ------------", row.getTableId());
+        if (tableName.length() != 4 && tableName.length() != 22 ) {
+            uploadTime();
+        }
+        LOGGER.debug(" ------------ table '{}' filter already ------------", row.getTableId());
 
         switch (row.getEventType()) {
             case MISSING_SCN:
